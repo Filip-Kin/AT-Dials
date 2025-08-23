@@ -78,7 +78,7 @@
 		}
 
 		computeSizes();
-		return () => window.removeEventListener("resize", computeSizes);
+		window.removeEventListener("resize", computeSizes);
 	});
 
 	// Advance and refresh times every 20s
@@ -93,6 +93,14 @@
 			}
 		}, 20000);
 		return () => clearInterval(t);
+	});
+
+	function enableAutoFullscreen() {
+		document.documentElement.requestFullscreen();
+		window.removeEventListener("click", enableAutoFullscreen);
+	}
+	onMount(() => {
+		window.addEventListener("click", enableAutoFullscreen);
 	});
 </script>
 
