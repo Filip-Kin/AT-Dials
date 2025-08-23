@@ -2,6 +2,6 @@
 	import Dials from "./pages/Dials.svelte";
 </script>
 
-<main>
+<main class="dark:bg-gray-800">
 	<Dials />
 </main>
