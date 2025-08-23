@@ -1,0 +1,24 @@
+{
+    "name": "my-project",
+    "private": true,
+    "type": "module",
+    "workspaces": [
+        "app",
+        "server"
+    ],
+    "scripts": {
+        "build": "bun run build:app",
+        "build:app": "cd app; bun run build",
+        "start": "bun server/src/index.ts",
+        "typecheck": "tsc --noEmit"
+    },
+    "devDependencies": {
+        "typescript": "^5.5.0",
+        "@types/node": "^20.11.0"
+    },
+    "dependencies": {
+        "@trpc/server": "^11.0.0",
+        "superjson": "^2.2.1",
+        "zod": "^3.23.8"
+    }
+}
