@@ -1,61 +1,62 @@
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 import { router } from "./trpc";
 import { atRouter } from "./routers/auckland-transport";
+import path from "path";
+import { fileURLToPath } from "url";
 
 const appRouter = router({ at: atRouter });
 export type AppRouter = typeof appRouter;
 
-// absolute path to app/dist
-const distRoot = new URL("../app/dist/", import.meta.url).pathname;
+// Proper, cross-platform absolute path to app/dist
+const distRoot = fileURLToPath(new URL("../../app/dist/", import.meta.url));
 
-// try serving a file from app/dist (returns null if none)
+function safeJoin(root: string, rel: string) {
+    const p = path.normalize(path.join(root, rel));
+    // prevent path traversal
+    if (!p.startsWith(root)) return null;
+    return p;
+}
+
 async function tryStatic(pathname: string): Promise<Response | null> {
-    // normalize: "/" => "/index.html"
-    const rel = pathname === "/" ? "/index.html" : pathname;
-    const filePath = distRoot + rel;
+    // "/" -> "index.html"; strip leading slash otherwise
+    const rel = pathname === "/" ? "index.html" : pathname.replace(/^\//, "");
+    const filePath = safeJoin(distRoot, rel);
+    if (!filePath) return null;
 
     const file = Bun.file(filePath);
-    if (await file.exists()) {
-        const headers = new Headers();
-        // long cache for hashed assets (vite default: /assets/* with hash)
-        if (rel.startsWith("/assets/")) {
-            headers.set("Cache-Control", "public, max-age=31536000, immutable");
-        } else {
-            headers.set("Cache-Control", "public, max-age=300");
-        }
-        return new Response(file, { headers });
+    if (!(await file.exists())) return null;
+
+    const relPosix = rel.replaceAll("\\", "/");
+    const headers = new Headers();
+    if (relPosix.startsWith("assets/")) {
+        headers.set("Cache-Control", "public, max-age=31536000, immutable");
+    } else {
+        headers.set("Cache-Control", "public, max-age=300");
     }
-    return null;
+    return new Response(file, { headers });
 }
 
 const handler = async (req: Request) => {
     const url = new URL(req.url);
     const pathname = decodeURI(url.pathname);
 
-    // tRPC API
     if (pathname.startsWith("/trpc")) {
         return fetchRequestHandler({
             endpoint: "/trpc",
             req,
             router: appRouter,
             createContext: () => ({}),
-            onError: ({ error, path }) => console.error("tRPC error:", { path, error }),
         });
     }
 
-    // serve static file if it exists
+    // Serve static or SPA fallback
     const staticResp = await tryStatic(pathname);
     if (staticResp) return staticResp;
 
-    // SPA fallback → index.html for any non-API route
-    const index = Bun.file(distRoot + "/index.html");
+    const index = Bun.file(path.join(distRoot, "index.html"));
     if (await index.exists()) {
-        return new Response(index, {
-            headers: { "Cache-Control": "no-cache" },
-        });
+        return new Response(index, { headers: { "Cache-Control": "no-cache" } });
     }
-
-    // nothing to serve (likely build didn’t run / wrong path)
     return new Response("Not found", { status: 404 });
 };
 
