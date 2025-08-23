@@ -77,7 +77,6 @@
 			});
 		}
 
-		computeSizes();
 		window.removeEventListener("resize", computeSizes);
 	});
 
@@ -97,7 +96,7 @@
 
 	function enableAutoFullscreen() {
 		document.documentElement.requestFullscreen();
-		window.removeEventListener("click", enableAutoFullscreen);
+		computeSizes();
 	}
 	onMount(() => {
 		window.addEventListener("click", enableAutoFullscreen);
@@ -109,8 +108,8 @@
 	{#each data as trip (trip.id)}
 		<div class="rounded-2xl shadow p-4 bg-neutral-900 text-white flex flex-col justify-between h-full overflow-hidden">
 			<!-- Header -->
-			<div class="mb-1 text-xl font-semibold leading-tight truncate">{trip.name}</div>
-			<div class="mb-2 text-lg text-white/90 leading-tight truncate">
+			<div class="text-xl font-semibold leading-tight truncate">{trip.name}</div>
+			<div class="text-lg mb-1 text-white/90 leading-tight truncate">
 				{trip.direction} @ {clock(trip.currentTime)}
 			</div>
 
@@ -126,7 +125,7 @@
 			</div>
 
 			<!-- Footer -->
-			<div class="mt-2 text-lg w-full text-center">
+			<div class="mt-1 text-lg w-full text-center">
 				Next: {clock(trip.nextTime)}
 			</div>
 		</div>
