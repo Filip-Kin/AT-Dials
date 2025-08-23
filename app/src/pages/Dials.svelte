@@ -32,31 +32,9 @@
 	const clock = (d: Date | null) => (d ? d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—");
 
 	// Layout sizing (kept simple)
-	let rowHeight = $state(260);
-	let dialSize = $state(160);
-
-	const GRID_VPAD = 32; // p-4 top+bottom on the grid
-	const GAP_Y = 24; // gap-6 between rows
-	const NON_DIAL = 150; // rough space for header + footer + card padding
-
-	function computeSizes() {
-		const count = data.length || config.length;
-		const rows = Math.max(1, Math.ceil(count / COLS));
-
-		const vh = window.innerHeight;
-		const available = vh - GRID_VPAD - (rows - 1) * GAP_Y;
-
-		const perRow = Math.max(160, Math.floor(available / rows));
-		rowHeight = perRow;
-
-		// Keep the dial inside the row; avoid clamps, keep it simple
-		const s = Math.min(Math.max(60, perRow - NON_DIAL), 300);
-		dialSize = Math.floor(s);
-	}
+	let dialSize = $state(120);
 
 	onMount(async () => {
-		window.addEventListener("resize", computeSizes);
-
 		for (const stop of config) {
 			const trips = await trpc.at.getStopTrips.query({ id: stop.id });
 			if (!trips[0]) continue;
@@ -76,8 +54,6 @@
 				trips,
 			});
 		}
-
-		window.removeEventListener("resize", computeSizes);
 	});
 
 	// Advance and refresh times every 20s
@@ -96,7 +72,6 @@
 
 	function enableAutoFullscreen() {
 		document.documentElement.requestFullscreen();
-		computeSizes();
 	}
 	onMount(() => {
 		window.addEventListener("click", enableAutoFullscreen);
@@ -104,7 +79,7 @@
 </script>
 
 <!-- Full viewport, two columns, fixed row heights, no vertical scroll -->
-<div class="grid grid-cols-2 gap-6 p-4 h-screen overflow-hidden bg-neutral-950" style={`grid-auto-rows:${rowHeight}px`}>
+<div class="grid grid-cols-2 gap-6 p-4 h-screen overflow-hidden bg-neutral-950">
 	{#each data as trip (trip.id)}
 		<div class="rounded-2xl shadow p-4 bg-neutral-900 text-white flex flex-col justify-between h-full overflow-hidden">
 			<!-- Header -->
