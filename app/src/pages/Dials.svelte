@@ -3,10 +3,6 @@
 	import { trpc } from "../trpc";
 	import type { Route, Stop, StopTrip } from "../../../server/src/lib/at";
 
-	let stops: Stop[] = $state([]);
-	let routes: Route[] = $state([]);
-	let stopTrips: StopTrip[] = $state([]);
-
 	let config: {
 		id: string;
 		walkTime: number;
@@ -20,6 +16,41 @@
 			runTime: 3,
 			name: "74 Bus",
 			direction: "Sylvia Park",
+		},
+		{
+			id: "7540-583fbdc2",
+			walkTime: 5,
+			runTime: 3,
+			name: "74 Bus",
+			direction: "Glen Innes",
+		},
+		{
+			id: "1759-1cb249c7",
+			walkTime: 12,
+			runTime: 5,
+			name: "70 Bus",
+			direction: "Ellerslie",
+		},
+		{
+			id: "1760-317dbc99",
+			walkTime: 12,
+			runTime: 5,
+			name: "70 Bus",
+			direction: "Botany",
+		},
+		{
+			id: "9407-ebcb6116",
+			walkTime: 12,
+			runTime: 5,
+			name: "Eastern Line",
+			direction: "Waitematā",
+		},
+		{
+			id: "9406-ffd612d1",
+			walkTime: 12,
+			runTime: 5,
+			name: "Eastern Line",
+			direction: "Manukau",
 		},
 	];
 
@@ -53,28 +84,11 @@
 				trips,
 			});
 		}
+		console.log(data);
 	});
 
 	function update() {}
 </script>
-
-<!-- <div class="grid grid-cols-4">
-	{#each stops as stop}
-		<div>{stop.id}</div>
-		<div>{stop.code}</div>
-		<div>{stop.name}</div>
-		<div>{stop.location_type}</div>
-	{/each}
-</div> -->
-
-<!-- <div class="grid grid-cols-4">
-	{#each routes as route}
-		<div>{route.id}</div>
-		<div>{route.shortName}</div>
-		<div>{route.longName}</div>
-		<div>{route.type}</div>
-	{/each}
-</div> -->
 
 <div class="grid grid-cols-2">
 	{#each data as trip}
