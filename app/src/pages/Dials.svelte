@@ -92,13 +92,15 @@
 
 			<!-- Dial -->
 			<div class="flex items-center justify-center">
-				<GaugeDial
-					minutesLeft={trip.minutesLeft}
-					walkTime={trip.walkTime}
-					runTime={trip.runTime}
-					size={dialSize}
-					stroke={Math.max(8, Math.round(dialSize * 0.08))}
-				/>
+				{#key trip.minutesLeft}
+					<GaugeDial
+						minutesLeft={trip.minutesLeft}
+						walkTime={trip.walkTime}
+						runTime={trip.runTime}
+						size={dialSize}
+						stroke={Math.max(8, Math.round(dialSize * 0.08))}
+					/>
+				{/key}
 			</div>
 
 			<!-- Footer -->
