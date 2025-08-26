@@ -99,6 +99,7 @@
 						runTime={trip.runTime}
 						size={dialSize}
 						stroke={Math.max(8, Math.round(dialSize * 0.08))}
+						maxMinutes={Math.max(20, trip.minutesLeft)}
 					/>
 				{/key}
 			</div>
