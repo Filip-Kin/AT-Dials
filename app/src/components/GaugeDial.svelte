@@ -8,6 +8,8 @@
 		startDeg = -135,
 		endDeg = 135,
 		maxMinutes = null,
+		needleClass = "",
+		needleTransition = "transform 300ms ease",
 	}: {
 		minutesLeft?: number;
 		walkTime?: number;
@@ -17,6 +19,8 @@
 		startDeg?: number;
 		endDeg?: number;
 		maxMinutes?: number | null;
+		needleClass?: string;
+		needleTransition?: string;
 	} = $props();
 
 	const cx = size / 2;
@@ -61,12 +65,14 @@
 	const grnStart = angleFor(grnHi),
 		grnEnd = angleFor(grnLo);
 
-	const needleAngle = angleFor(minutesLeft);
-	const minutesText = `${Math.max(0, Math.ceil(minutesLeft))} min`;
+	const needleAngle = $derived(angleFor(minutesLeft));
+	const minutesText = $derived(`${Math.max(0, Math.ceil(minutesLeft))} min`);
 </script>
 
-<div class="flex flex-col items-center gap-2 text-white">
-	<svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} class="overflow-visible">
+<!-- The dial uses CSS positioning so we can layer multiple SVGs -->
+<div class="dial" style={`--size:${size}px; --cx:${cx}; --cy:${cy};`}>
+	<!-- Base dial SVG -->
+	<svg class="base" width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true">
 		<!-- background track -->
 		<path d={describeArc(cx, cy, r, startDeg, endDeg)} stroke="#374151" stroke-width={stroke} fill="none" stroke-linecap="round" />
 
@@ -74,22 +80,64 @@
 		<path d={describeArc(cx, cy, r, grnStart, grnEnd)} stroke="#22c55e" stroke-width={stroke} fill="none" stroke-linecap="round" />
 		<path d={describeArc(cx, cy, r, yelStart, yelEnd)} stroke="#eab308" stroke-width={stroke} fill="none" stroke-linecap="round" />
 		<path d={describeArc(cx, cy, r, redStart, redEnd)} stroke="#ef4444" stroke-width={stroke} fill="none" stroke-linecap="round" />
+	</svg>
 
-		<!-- high-contrast needle -->
-		<g transform={`rotate(${needleAngle} ${cx} ${cy})`} style="transition: transform 300ms ease">
+	<!-- Needle wrapper applies the base rotation via CSS -->
+	<div class="needle-wrap" style={`transform: rotate(${needleAngle}deg); transition: ${needleTransition};`}>
+		<!-- Separate SVG for the needle so it can have its own animation -->
+		<svg class={`needle ${needleClass}`} width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true">
+			<!-- Draw the needle upright; rotation happens on the wrapper -->
 			<line x1={cx} y1={cy} x2={cx} y2={cy - (r - 6)} stroke="#ffffff" stroke-width="4" stroke-linecap="round" />
 			<circle {cx} {cy} r="5" fill="#ffffff" />
-		</g>
+		</svg>
+	</div>
 
-		<!-- center text -->
-		<text x={cx} y={cy + 22} font-size="16" text-anchor="middle" dominant-baseline="middle" fill="#ffffff">
-			{minutesText}
-		</text>
-	</svg>
+	<!-- Center label -->
+	<div class="label">{minutesText}</div>
 </div>
 
 <style>
-	svg {
+	.dial {
+		position: relative;
+		width: var(--size);
+		height: var(--size);
+		display: inline-block;
+		color: #fff;
+	}
+	.base {
+		position: absolute;
+		inset: 0;
 		display: block;
+	}
+	.needle-wrap {
+		position: absolute;
+		inset: 0;
+		transform-origin: 50% 50%;
+	}
+	.needle {
+		position: absolute;
+		inset: 0;
+		transform-origin: 50% 50%;
+		display: block;
+	}
+	.label {
+		position: absolute;
+		left: 50%;
+		top: calc(50% + 22px);
+		transform: translate(-50%, -50%);
+		font-size: 16px;
+		text-align: center;
+		white-space: nowrap;
+	}
+	@keyframes sweep-in {
+		from {
+			transform: rotate(-135deg);
+		}
+		to {
+			transform: rotate(0deg);
+		}
+	}
+	.needle.sweep {
+		animation: sweep-in 700ms ease-out;
 	}
 </style>

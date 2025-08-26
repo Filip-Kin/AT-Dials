@@ -92,16 +92,16 @@
 
 			<!-- Dial -->
 			<div class="flex items-center justify-center">
-				{#key trip.minutesLeft}
-					<GaugeDial
-						minutesLeft={trip.minutesLeft}
-						walkTime={trip.walkTime}
-						runTime={trip.runTime}
-						size={dialSize}
-						stroke={Math.max(8, Math.round(dialSize * 0.08))}
-						maxMinutes={Math.max(20, trip.minutesLeft)}
-					/>
-				{/key}
+				<GaugeDial
+					minutesLeft={trip.minutesLeft}
+					walkTime={trip.walkTime}
+					runTime={trip.runTime}
+					size={dialSize}
+					stroke={Math.max(8, Math.round(dialSize * 0.08))}
+					maxMinutes={20}
+					needleTransition="transform 750ms cubic-bezier(.22,1,.36,1)"
+					needleClass="sweep"
+				/>
 			</div>
 
 			<!-- Footer -->
