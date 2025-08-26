@@ -55,13 +55,13 @@ export type Route = {
 };
 
 export async function getStopTrips(id: string, date: Date, hourRange: number): Promise<StopTrip[]> {
-    console.log(`Fetching trips for stop ID: ${id}, ${date.toISOString().split("T")[0]}, ${date.getHours()}, ${hourRange}`);
-    const data = await fetchATData(`stops/${id}/stoptrips?filter[date]=${date.toISOString().split("T")[0]}&filter[start_hour]=${date.getHours()}&filter%5Bhour_range%5D=${hourRange}`);
+    console.log(`Fetching trips for stop ID: ${id}, ${date.toISOString().split("T")[0]}, ${date.getHours() + 12}, ${hourRange}`);
+    const data = await fetchATData(`stops/${id}/stoptrips?filter[date]=${date.toISOString().split("T")[0]}&filter[start_hour]=${date.getHours() + 12}&filter%5Bhour_range%5D=${hourRange}`);
     console.log(data);
     console.table(data.data);
     const trips = data.data.map((trip: any) => ({
-        arrivalTime: new Date(`${trip.attributes.service_date}T${trip.attributes.arrival_time}`),
-        departureTime: new Date(`${trip.attributes.service_date}T${trip.attributes.departure_time}`),
+        arrivalTime: new Date(`${trip.attributes.service_date}T${trip.attributes.arrival_time}+12:00`),
+        departureTime: new Date(`${trip.attributes.service_date}T${trip.attributes.departure_time}+12:00`),
         directionId: trip.attributes.direction_id,
         dropOffType: trip.attributes.drop_off_type,
         pickupType: trip.attributes.pickup_type,
@@ -73,7 +73,7 @@ export async function getStopTrips(id: string, date: Date, hourRange: number): P
         stopSequence: trip.attributes.stop_sequence,
         tripHeadsign: trip.attributes.trip_headsign,
         tripId: trip.attributes.trip_id,
-        tripStartTime: new Date(`${trip.attributes.service_date}T${trip.attributes.trip_start_time}`)
+        tripStartTime: new Date(`${trip.attributes.service_date}T${trip.attributes.trip_start_time}+12:00`)
     }));
     console.log(trips);
     return trips.filter((t: StopTrip) => t.departureTime >= date);
