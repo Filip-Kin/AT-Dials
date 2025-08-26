@@ -4,8 +4,6 @@
 	import GaugeDial from "../components/GaugeDial.svelte";
 	import type { StopTrip } from "../../../server/src/lib/at";
 
-	const COLS = 2;
-
 	const config = [
 		{ id: "7537-41d856a0", walkTime: 5, runTime: 3, name: "74 Bus", direction: "Sylvia Park" },
 		{ id: "7540-583fbdc2", walkTime: 5, runTime: 3, name: "74 Bus", direction: "Glen Innes" },
@@ -28,6 +26,7 @@
 	};
 
 	let data: Card[] = $state([]);
+	$inspect(data);
 
 	const clock = (d: Date | null) => (d ? d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—");
 
@@ -35,40 +34,43 @@
 	let dialSize = $state(120);
 
 	onMount(async () => {
+		await update();
+		setInterval(update, 30000);
+	});
+
+	async function update() {
+		let updatePromises = [];
+		let newData: Card[] = [];
 		for (const stop of config) {
-			const trips = await trpc.at.getStopTrips.query({ id: stop.id });
-			if (!trips[0]) continue;
+			updatePromises.push(
+				new Promise(async (resolve) => {
+					const trips = await trpc.at.getStopTrips.query({ id: stop.id });
+					if (!trips[0]) {
+						resolve(void 0);
+						return;
+					}
 
-			const now = Date.now();
-			const ms = trips[0].departureTime.getTime() - now;
+					const now = Date.now();
+					const ms = trips[0].departureTime.getTime() - now;
 
-			data.push({
-				id: stop.id,
-				name: stop.name,
-				direction: stop.direction,
-				walkTime: stop.walkTime,
-				runTime: stop.runTime,
-				minutesLeft: Math.max(0, Math.ceil(ms / 60000)),
-				currentTime: trips[0]?.departureTime ?? null,
-				nextTime: trips[1]?.departureTime ?? null,
-				trips,
-			});
+					newData.push({
+						id: stop.id,
+						name: stop.name,
+						direction: stop.direction,
+						walkTime: stop.walkTime,
+						runTime: stop.runTime,
+						minutesLeft: Math.max(0, Math.ceil(ms / 60000)),
+						currentTime: trips[0]?.departureTime ?? null,
+						nextTime: trips[1]?.departureTime ?? null,
+						trips,
+					});
+					resolve(void 0);
+				})
+			);
 		}
-	});
-
-	// Advance and refresh times every 20s
-	onMount(() => {
-		const t = setInterval(() => {
-			const now = Date.now();
-			for (const d of data) {
-				while (d.trips.length && d.trips[0].departureTime.getTime() <= now) d.trips.shift();
-				d.currentTime = d.trips[0]?.departureTime ?? null;
-				d.nextTime = d.trips[1]?.departureTime ?? null;
-				d.minutesLeft = d.currentTime ? Math.max(0, Math.ceil((d.currentTime.getTime() - now) / 60000)) : 0;
-			}
-		}, 20000);
-		return () => clearInterval(t);
-	});
+		await Promise.all(updatePromises);
+		data = [...newData];
+	}
 
 	function enableAutoFullscreen() {
 		document.documentElement.requestFullscreen();
