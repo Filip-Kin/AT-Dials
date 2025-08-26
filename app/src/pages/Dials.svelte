@@ -28,7 +28,7 @@
 	let data: Card[] = $state([]);
 	$inspect(data);
 
-	const clock = (d: Date | null) => (d ? d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—");
+	const clock = (d: Date | null) => (d ? d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false }) : "—");
 
 	// Layout sizing (kept simple)
 	let dialSize = $state(120);
