@@ -1,17 +1,40 @@
+<script lang="ts" module>
+	export type StopConfig = {
+		id: string;
+		walkTime: number;
+		runTime: number;
+		name: string;
+		direction: string;
+		route: string;
+	};
+</script>
+
 <script lang="ts">
 	import { onMount } from "svelte";
 	import { trpc } from "../trpc";
 	import GaugeDial from "../components/GaugeDial.svelte";
+	import ConfigModal from "../components/ConfigModal.svelte";
 	import type { StopTrip } from "../../../server/src/lib/at";
 
-	const config = [
-		{ id: "7537-41d856a0", walkTime: 5, runTime: 3, name: "74 Bus", direction: "Sylvia Park" },
-		{ id: "7540-583fbdc2", walkTime: 5, runTime: 3, name: "74 Bus", direction: "Glen Innes" },
-		{ id: "1759-1cb249c7", walkTime: 12, runTime: 5, name: "70 Bus", direction: "Ellerslie" },
-		{ id: "1760-317dbc99", walkTime: 12, runTime: 5, name: "70 Bus", direction: "Botany" },
-		{ id: "9407-ebcb6116", walkTime: 12, runTime: 5, name: "Eastern Line", direction: "Waitematā" },
-		{ id: "9406-ffd612d1", walkTime: 12, runTime: 5, name: "Eastern Line", direction: "Manukau" },
-	] as const;
+	let config: StopConfig[] = $state([]);
+
+	async function loadConfig() {
+		const configParam = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("config") : null;
+		if (configParam) {
+			try {
+				const decoded = typeof atob === "function" ? atob(configParam) : Buffer.from(configParam, "base64").toString("utf-8");
+				const parsed = JSON.parse(decoded) as StopConfig[];
+				if (Array.isArray(parsed)) {
+					config = parsed;
+					return;
+				}
+				// If parsing didn't yield an array, fall through to other methods
+				console.warn("config query param decoded but did not parse to an array, falling back");
+			} catch (err) {
+				console.warn("Failed to decode/parse config query param, falling back:", err);
+			}
+		}
+	}
 
 	type Card = {
 		id: string;
@@ -28,12 +51,15 @@
 	let data: Card[] = $state([]);
 	$inspect(data);
 
+	let modalOpen = $state(false);
+
 	const clock = (d: Date | null) => (d ? d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false }) : "—");
 
 	// Layout sizing (kept simple)
 	let dialSize = $state(120);
 
 	onMount(async () => {
+		await loadConfig();
 		await update();
 		setInterval(update, 30000);
 	});
@@ -68,7 +94,7 @@
 				})
 			);
 		}
-		await Promise.all(updatePromises);
+		await Promise.allSettled(updatePromises);
 		data = [...newData];
 	}
 
@@ -78,9 +104,52 @@
 	onMount(() => {
 		window.addEventListener("click", enableAutoFullscreen);
 	});
+
+	function handleAdd(detail: StopConfig) {
+		// avoid duplicates
+		if (config.find((c) => c.id === detail.id && c.name === detail.name && c.direction === detail.direction)) {
+			modalOpen = false;
+			return;
+		}
+		config = [...config, detail];
+		// update immediately
+		update();
+		// sync URL whenever config changes
+		syncConfigToUrl();
+		modalOpen = false;
+	}
+
+	function syncConfigToUrl() {
+		try {
+			const json = JSON.stringify(config || []);
+			const b64 = typeof btoa === "function" ? btoa(json) : Buffer.from(json, "utf-8").toString("base64");
+			if (typeof window !== "undefined") {
+				const url = new URL(window.location.href);
+				if (url.searchParams.get("config") !== b64) {
+					url.searchParams.set("config", b64);
+					window.history.replaceState(null, "", url.toString());
+				}
+			}
+		} catch (err) {
+			// eslint-disable-next-line no-console
+			console.warn("Failed to sync config to URL", err);
+		}
+	}
 </script>
 
 <!-- Full viewport, two columns, fixed row heights, no vertical scroll -->
+<!-- Configure button is transparent when a config exists; fully visible when no config -->
+<button
+	class={`px-3 py-2 text-white rounded absolute top-4 right-4 z-50 transition-opacity duration-200 bg-blue-600 ${
+		config && config.length > 0 ? "opacity-0 hover:opacity-100" : "opacity-100"
+	}`}
+	onclick={() => (modalOpen = true)}
+>
+	Configure
+</button>
+
+<ConfigModal bind:open={modalOpen} onAdd={handleAdd} />
+
 <div class="grid grid-cols-2 gap-6 p-4 h-screen overflow-hidden bg-neutral-950">
 	{#each data as trip (trip.id)}
 		<div class="rounded-2xl shadow p-4 bg-neutral-900 text-white flex flex-col justify-between h-full overflow-hidden">

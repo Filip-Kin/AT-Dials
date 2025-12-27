@@ -1,3 +1,5 @@
+import { TRPCError } from "@trpc/server";
+
 export async function fetchATData(path: string): Promise<any> {
     try {
         const response = await fetch(`https://api.at.govt.nz/gtfs/v3/${path}`, {
@@ -5,15 +7,26 @@ export async function fetchATData(path: string): Promise<any> {
                 "Ocp-Apim-Subscription-Key": process.env.AT_API_KEY || ""
             }
         });
-        return response.json();
+        const json = await response.json();
+
+        if (json.errors && json.errors.length > 0) {
+            console.log();
+            throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: `AT API Error: ${json.errors.map((e: any) => `${e.status} - ${e.title}`).join(", ")}`
+            });
+        }
+
+        return json;
     } catch (error) {
-        console.error('Error fetching AT data:', error);
+        console.error(`https://api.at.govt.nz/gtfs/v3/${path}`);
         throw error;
     }
 }
 
 export async function getStops(): Promise<Stop[]> {
     const data = await fetchATData("stops");
+    console.dir(data, { depth: null });
     return data.data.map((stop: any) => ({
         id: stop.attributes.stop_id,
         code: stop.attributes.stop_code,
@@ -37,6 +50,7 @@ export type Stop = {
 
 export async function getRoutes(): Promise<Route[]> {
     const data = await fetchATData("routes");
+    console.dir(data, { depth: null });
     return data.data.map((route: any) => ({
         id: route.attributes.route_id,
         shortName: route.attributes.route_short_name,
@@ -75,7 +89,7 @@ function getNZOffsetString(date: Date): string {
     return `${sign}${hh}:${mm === "60" ? "00" : mm}`;
 }
 
-export async function getStopTrips(id: string, date: Date, hourRange: number): Promise<StopTrip[]> {
+export async function getStopTrips(id: string, date: Date, hourRange: number, route?: string): Promise<StopTrip[]> {
     // Always use Pacific/Auckland for date/hour
     const tzOffset = getNZOffsetString(date);
 
@@ -93,6 +107,8 @@ export async function getStopTrips(id: string, date: Date, hourRange: number): P
         `stops/${id}/stoptrips?filter[date]=${atDate}&filter[start_hour]=${atHour}&filter%5Bhour_range%5D=${hourRange}`
     );
 
+    console.dir(data, { depth: null });
+
     const trips = data.data.map((trip: any) => ({
         arrivalTime: new Date(`${trip.attributes.service_date}T${trip.attributes.arrival_time}${tzOffset}`),
         departureTime: new Date(`${trip.attributes.service_date}T${trip.attributes.departure_time}${tzOffset}`),
@@ -109,6 +125,10 @@ export async function getStopTrips(id: string, date: Date, hourRange: number): P
         tripId: trip.attributes.trip_id,
         tripStartTime: new Date(`${trip.attributes.service_date}T${trip.attributes.trip_start_time}${tzOffset}`)
     }));
+
+    if (route) {
+        return trips.filter((t: StopTrip) => t.routeId === route && t.departureTime >= date);
+    }
 
     return trips.filter((t: StopTrip) => t.departureTime >= date);
 }

@@ -13,9 +13,10 @@ export const atRouter = router({
 
     getStopTrips: publicProcedure.input(
         z.object({
-            id: z.string()
+            id: z.string(),
+            route: z.string().optional()
         })
     ).query(async ({ input }) => {
-        return await getStopTrips(input.id, new Date(), 3);
+        return await getStopTrips(input.id, new Date(), 3, input.route);
     })
 });
